@@ -1,0 +1,2243 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tangkap Lebah - Media Pembelajaran IPA Kelas 8</title>
+  <style>
+    /* =====================================================================
+       PENGATURAN GAYA DASAR & TEMA TAMAN BUNGA CERIA
+       ===================================================================== */
+    :root {
+      --langit-atas: #60c5f1;
+      --langit-bawah: #d4f3ff;
+      --rumput-cerah: #76c84d;
+      --rumput-gelap: #4ea32a;
+      --kuning-madu: #ffcb2b;
+      --oranye-hangat: #ff8c1a;
+      --putih-kartu: rgba(255, 255, 255, 0.94);
+      --teks-gelap: #1e293b;
+      --hijau-benar: #16a34a;
+      --merah-salah: #e11d48;
+      --bayangan-lembut: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: linear-gradient(180deg, var(--langit-atas) 0%, var(--langit-bawah) 70%, var(--rumput-cerah) 70%, var(--rumput-gelap) 100%);
+      color: var(--teks-gelap);
+    }
+
+    /* =====================================================================
+       LAPISAN KAMERA & ARENA BERMAIN
+       ===================================================================== */
+    #wadah-game {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Video kamera (dicerminkan agar alami seperti cermin) */
+    #video-kamera {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      opacity: 0.48;
+      z-index: 1;
+      display: none;
+    }
+
+    /* Kanvas untuk visualisasi jejak gerakan tangan (gesture) */
+    #kanvas-gesture {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    /* Dekorasi Taman Bunga (SVG Latar) */
+    .dekorasi-taman {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 28%;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .awan {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 50px;
+      z-index: 2;
+      pointer-events: none;
+      animation: awanMelayang 35s linear infinite;
+    }
+    .awan::before, .awan::after {
+      content: '';
+      position: absolute;
+      background: inherit;
+      border-radius: 50%;
+    }
+    .awan-1 { width: 140px; height: 45px; top: 12%; left: -160px; }
+    .awan-1::before { width: 65px; height: 65px; top: -30px; left: 20px; }
+    .awan-1::after { width: 50px; height: 50px; top: -20px; left: 70px; }
+
+    .awan-2 { width: 180px; height: 55px; top: 24%; left: -220px; animation-duration: 48s; animation-delay: 8s; }
+    .awan-2::before { width: 80px; height: 80px; top: -38px; left: 25px; }
+    .awan-2::after { width: 60px; height: 60px; top: -25px; left: 95px; }
+
+    @keyframes awanMelayang {
+      from { transform: translateX(0); }
+      to { transform: translateX(calc(100vw + 300px)); }
+    }
+
+    /* =====================================================================
+       PANEL HUD (SKOR, NYAWA, TIMER, KONTROL AUDIO)
+       ===================================================================== */
+    #hud-atas {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      z-index: 20;
+    }
+
+    .kelompok-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge-info {
+      background: var(--putih-kartu);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      border: 3px solid #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-timer {
+      background: #fef08a;
+      border-color: #facc15;
+      color: #854d0e;
+      min-width: 90px;
+      justify-content: center;
+    }
+
+    .badge-timer.kritis {
+      background: #fecdd3;
+      border-color: #f43f5e;
+      color: #9f1239;
+      animation: denyutCepat 0.5s infinite alternate;
+    }
+
+    @keyframes denyutCepat {
+      from { transform: scale(1); }
+      to { transform: scale(1.08); }
+    }
+
+    /* Kontrol Audio & Lagu */
+    .panel-audio {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--putih-kartu);
+      padding: 6px 12px;
+      border-radius: 999px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    .btn-ikon {
+      background: #f1f5f9;
+      border: 2px solid #cbd5e1;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, background 0.15s;
+    }
+
+    .btn-ikon:hover {
+      transform: scale(1.1);
+      background: #e2e8f0;
+    }
+
+    .btn-ikon.nonaktif {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      opacity: 0.75;
+    }
+
+    #slider-volume {
+      width: 75px;
+      accent-color: #f59e0b;
+      cursor: pointer;
+    }
+
+    .btn-pilih-lagu {
+      background: #e0f2fe;
+      border: 2px solid #7dd3fc;
+      color: #0369a1;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-pilih-lagu:hover {
+      background: #bae6fd;
+    }
+
+    /* =====================================================================
+       KOTAK PERTANYAAN DI BAGIAN ATAS
+       ===================================================================== */
+    #kotak-pertanyaan-wrap {
+      position: absolute;
+      top: 66px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 94%;
+      max-width: 880px;
+      z-index: 15;
+      display: none;
+    }
+
+    #kotak-pertanyaan {
+      background: var(--putih-kartu);
+      border: 4px solid #f59e0b;
+      border-radius: 24px;
+      padding: 14px 22px;
+      box-shadow: var(--bayangan-lembut);
+      text-align: center;
+    }
+
+    .label-nomor-soal {
+      display: inline-block;
+      background: #fef3c7;
+      color: #b45309;
+      font-weight: 800;
+      font-size: 0.85rem;
+      padding: 3px 12px;
+      border-radius: 999px;
+      margin-bottom: 6px;
+    }
+
+    #teks-pertanyaan {
+      font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+      font-weight: 800;
+      line-height: 1.35;
+      color: #0f172a;
+    }
+
+    /* Umpan Balik Mendidik (Banner Melayang) */
+    #banner-umpan-balik {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: rgba(255, 255, 255, 0.97);
+      padding: 18px 28px;
+      border-radius: 24px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+      text-align: center;
+      z-index: 25;
+      max-width: 88%;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #banner-umpan-balik.tampil {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    #banner-umpan-balik.benar { border: 5px solid var(--hijau-benar); }
+    #banner-umpan-balik.salah { border: 5px solid #f59e0b; }
+
+    /* =====================================================================
+       ARENA LEBAH TERBANG & ANIMASI SAYAP
+       ===================================================================== */
+    #arena-lebah {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      overflow: hidden;
+    }
+
+    .lebah-item {
+      position: absolute;
+      width: 240px;
+      min-height: 118px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+      transition: filter 0.15s;
+      will-change: transform;
+    }
+
+    .lebah-item:hover {
+      filter: brightness(1.06);
+    }
+
+    .lebah-svg-wrap {
+      width: 86px;
+      height: 62px;
+      position: relative;
+      margin-bottom: -8px;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* Animasi kepakan sayap SVG */
+    .sayap-kiri {
+      transform-origin: 42px 26px;
+      animation: kepakKiri 0.14s infinite alternate ease-in-out;
+    }
+    .sayap-kanan {
+      transform-origin: 58px 26px;
+      animation: kepakKanan 0.14s infinite alternate ease-in-out;
+    }
+
+    @keyframes kepakKiri {
+      from { transform: rotate(-18deg) scaleY(1); }
+      to { transform: rotate(22deg) scaleY(0.75); }
+    }
+    @keyframes kepakKanan {
+      from { transform: rotate(18deg) scaleY(1); }
+      to { transform: rotate(-22deg) scaleY(0.75); }
+    }
+
+    /* Papan Jawaban yang Dibawa Lebah */
+    .papan-jawaban {
+      background: #ffffff;
+      border: 4px solid #f59e0b;
+      border-radius: 18px;
+      padding: 10px 14px;
+      width: 100%;
+      min-height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-weight: 800;
+      font-size: 0.95rem;
+      line-height: 1.25;
+      color: #1e293b;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+      position: relative;
+    }
+
+    .badge-opsi {
+      position: absolute;
+      top: -12px;
+      left: 12px;
+      background: #f59e0b;
+      color: #fff;
+      font-weight: 900;
+      font-size: 0.8rem;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #fff;
+    }
+
+    /* Animasi Getar Saat Jawaban Salah */
+    .lebah-getar {
+      animation: getarSalah 0.45s ease-in-out;
+    }
+    .lebah-getar .papan-jawaban {
+      border-color: var(--merah-salah);
+      background: #fff1f2;
+    }
+
+    @keyframes getarSalah {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-14px) rotate(-4deg); }
+      40% { transform: translateX(14px) rotate(4deg); }
+      60% { transform: translateX(-10px) rotate(-3deg); }
+      80% { transform: translateX(10px) rotate(3deg); }
+    }
+
+    /* Partikel Bintang Saat Jawaban Benar */
+    .bintang-partikel {
+      position: absolute;
+      font-size: 2rem;
+      pointer-events: none;
+      z-index: 30;
+      animation: ledakBintang 0.85s ease-out forwards;
+    }
+
+    @keyframes ledakBintang {
+      0% { transform: translate(0, 0) scale(0.5) rotate(0deg); opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(1.4) rotate(180deg); opacity: 0; }
+    }
+
+    /* =====================================================================
+       LAYAR OVERLAY (LAYAR AWAL & LAYAR AKHIR)
+       ===================================================================== */
+    .layar-modal {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(6px);
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .kartu-modal {
+      background: #ffffff;
+      border: 6px solid #fbbf24;
+      border-radius: 32px;
+      padding: 26px 24px;
+      max-width: 640px;
+      width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .judul-utama {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 900;
+      color: #d97706;
+      text-shadow: 2px 2px 0px #fef3c7;
+      margin-bottom: 6px;
+    }
+
+    .subjudul {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #475569;
+      margin-bottom: 18px;
+    }
+
+    .kotak-panduan {
+      background: #f0fdf4;
+      border: 2px solid #86efac;
+      border-radius: 20px;
+      padding: 14px;
+      text-align: left;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      margin-bottom: 18px;
+      color: #166534;
+    }
+
+    .pilihan-grup {
+      margin-bottom: 18px;
+      text-align: left;
+    }
+
+    .pilihan-grup label {
+      display: block;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #334155;
+      font-size: 0.95rem;
+    }
+
+    .grid-kesulitan {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .btn-level {
+      padding: 12px 8px;
+      border-radius: 16px;
+      border: 3px solid #cbd5e1;
+      background: #f8fafc;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-level.aktif {
+      border-color: #f59e0b;
+      background: #fef3c7;
+      color: #b45309;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(245, 158, 11, 0.25);
+    }
+
+    .opsi-kamera-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #eff6ff;
+      border: 2px solid #93c5fd;
+      padding: 12px 16px;
+      border-radius: 16px;
+      margin-bottom: 20px;
+    }
+
+    .btn-mulai {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+      color: white;
+      font-size: 1.35rem;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #15803d, 0 12px 20px rgba(22, 163, 74, 0.35);
+      transition: transform 0.1s;
+    }
+
+    .btn-mulai:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #15803d;
+    }
+
+    /* Layar Akhir & Ringkasan Materi */
+    .bintang-akhir {
+      font-size: 3rem;
+      margin: 10px 0;
+      letter-spacing: 6px;
+    }
+
+    .statistik-akhir {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .kotak-stat {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 10px;
+    }
+
+    .kotak-stat strong {
+      display: block;
+      font-size: 1.4rem;
+      color: #0f172a;
+    }
+
+    .daftar-evaluasi {
+      text-align: left;
+      background: #fffbeb;
+      border: 2px solid #fde68a;
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 18px;
+      max-height: 210px;
+      overflow-y: auto;
+    }
+
+    .item-evaluasi {
+      border-bottom: 1px dashed #fcd34d;
+      padding: 8px 0;
+      font-size: 0.9rem;
+    }
+    .item-evaluasi:last-child { border-bottom: none; }
+
+    .status-kamera-pill {
+      position: fixed;
+      bottom: 10px;
+      left: 12px;
+      background: rgba(15, 23, 42, 0.78);
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 999px;
+      z-index: 25;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .titik-indikator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #22c55e;
+      display: inline-block;
+    }
+
+    @media (max-width: 640px) {
+      .lebah-item { width: 175px; min-height: 102px; }
+      .papan-jawaban { font-size: 0.82rem; padding: 8px 10px; }
+      .lebah-svg-wrap { width: 68px; height: 50px; }
+      #kotak-pertanyaan-wrap { top: 104px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="wadah-game">
+  <!-- Video Kamera untuk Deteksi Gerakan (Battle Gesture) -->
+  <video id="video-kamera" autoplay playsinline muted></video>
+
+  <!-- Kanvas untuk Visualisasi Percikan Gerakan Tangan -->
+  <canvas id="kanvas-gesture"></canvas>
+
+  <!-- Dekorasi Taman Bunga -->
+  <div class="awan awan-1"></div>
+  <div class="awan awan-2"></div>
+
+  <svg class="dekorasi-taman" viewBox="0 0 1440 320" preserveAspectRatio="none">
+    <path fill="#65b83c" d="M0,160 C320,240 480,80 760,150 C1040,220 1240,100 1440,140 L1440,320 L0,320 Z"></path>
+    <path fill="#4ea32a" d="M0,210 C380,140 680,270 1050,190 C1250,150 1360,210 1440,200 L1440,320 L0,320 Z"></path>
+    <!-- Bunga-bunga hiasan -->
+    <g transform="translate(140, 230)">
+      <rect x="-3" y="0" width="6" height="60" fill="#2e7d32"/>
+      <circle cx="0" cy="0" r="16" fill="#ff5252"/>
+      <circle cx="0" cy="0" r="7" fill="#ffeb3b"/>
+    </g>
+    <g transform="translate(420, 250)">
+      <rect x="-3" y="0" width="6" height="55" fill="#2e7d32"/>
+      <circle cx="0" cy="0" r="15" fill="#ff4081"/>
+      <circle cx="0" cy="0" r="6" fill="#fff"/>
+    </g>
+    <g transform="translate(980, 235)">
+      <rect x="-3" y="0" width="6" height="60" fill="#2e7d32"/>
+      <circle cx="0" cy="0" r="17" fill="#ab47bc"/>
+      <circle cx="0" cy="0" r="7" fill="#ffeb3b"/>
+    </g>
+    <g transform="translate(1280, 245)">
+      <rect x="-3" y="0" width="6" height="55" fill="#2e7d32"/>
+      <circle cx="0" cy="0" r="15" fill="#ff7043"/>
+      <circle cx="0" cy="0" r="6" fill="#fff9c4"/>
+    </g>
+  </svg>
+
+  <!-- HUD Atas (Skor, Nyawa, Timer, Kontrol Audio) -->
+  <div id="hud-atas">
+    <div class="kelompok-badge">
+      <div class="badge-info" title="Skor Kamu">🏆 <span id="teks-skor">0</span></div>
+      <div class="badge-info" title="Sisa Nyawa">❤️ <span id="teks-nyawa">3</span></div>
+      <div class="badge-info" title="Progres Soal">📋 <span id="teks-progres">1/10</span></div>
+      <div class="badge-info badge-timer" id="wadah-timer" title="Sisa Waktu Soal">⏱️ <span id="teks-timer">15</span>d</div>
+    </div>
+
+    <div class="panel-audio">
+      <button class="btn-ikon" id="btn-mute-musik" title="Bisukan / Nyalakan Musik Latar">🎵</button>
+      <button class="btn-ikon" id="btn-mute-sfx" title="Bisukan / Nyalakan Efek Suara">🔊</button>
+      <input type="range" id="slider-volume" min="0" max="1" step="0.05" value="0.6" title="Volume Suara">
+      <button class="btn-pilih-lagu" id="btn-pilih-lagu" title="Muat file lagu MP3/WAV dari perangkat">📂 Pilih Lagu</button>
+      <input type="file" id="input-file-lagu" accept="audio/*" style="display:none;">
+    </div>
+  </div>
+
+  <!-- Kotak Pertanyaan -->
+  <div id="kotak-pertanyaan-wrap">
+    <div id="kotak-pertanyaan">
+      <span class="label-nomor-soal" id="label-topik">IPA Kelas 8 • Soal 1 dari 10</span>
+      <div id="teks-pertanyaan">Memuat pertanyaan...</div>
+    </div>
+  </div>
+
+  <!-- Arena Lebah Terbang -->
+  <div id="arena-lebah"></div>
+
+  <!-- Banner Umpan Balik Mendidik -->
+  <div id="banner-umpan-balik">
+    <div id="judul-umpan-balik" style="font-size: 1.4rem; font-weight: 900; margin-bottom: 6px;"></div>
+    <div id="isi-umpan-balik" style="font-size: 1rem; font-weight: 600; color: #334155;"></div>
+  </div>
+
+  <!-- Indikator Status Kamera Gesture -->
+  <div class="status-kamera-pill" id="status-kamera-pill">
+    <span class="titik-indikator" id="titik-kamera" style="background:#f59e0b;"></span>
+    <span id="teks-status-kamera">Mode Sentuh / Mouse Siap</span>
+  </div>
+
+  <!-- =====================================================================
+       LAYAR AWAL
+       ===================================================================== -->
+  <div class="layar-modal" id="layar-awal">
+    <div class="kartu-modal">
+      <div style="font-size: 3rem; margin-bottom: 4px;">🐝🌻🔬</div>
+      <h1 class="judul-utama">TANGKAP LEBAH</h1>
+      <p class="subjudul">Petualangan Sains IPA Kelas 8 • Battle Gesture Kamera</p>
+
+      <div class="kotak-panduan">
+        <strong>🎯 Cara Bermain:</strong><br>
+        1. Bacalah pertanyaan IPA yang muncul di bagian atas layar.<br>
+        2. <strong>Gerakkan tanganmu di depan kamera</strong> (atau klik/ketuk layar) untuk menangkap lebah yang membawa jawaban paling tepat!<br>
+        3. Setiap sesi terdiri dari <strong>10 soal acak</strong> dengan waktu <strong>15 detik</strong> per soal.
+      </div>
+
+      <div class="pilihan-grup">
+        <label>⚡ Pilih Tingkat Kesulitan (Kecepatan & Jumlah Lebah):</label>
+        <div class="grid-kesulitan">
+          <button class="btn-level aktif" data-level="mudah">🌱 Mudah<br><small style="font-weight:600;">3 Lebah • Santai</small></button>
+          <button class="btn-level" data-level="sedang">🌼 Sedang<br><small style="font-weight:600;">4 Lebah • Lincah</small></button>
+          <button class="btn-level" data-level="sulit">🔥 Sulit<br><small style="font-weight:600;">4 Lebah • Cepat</small></button>
+        </div>
+      </div>
+
+      <div class="opsi-kamera-box">
+        <div style="text-align: left;">
+          <strong style="color:#1e3a8a; font-size:0.95rem;">📷 Kamera Battle Gesture</strong>
+          <div style="font-size:0.8rem; color:#3b82f6;">Tangkap lebah dengan lambaian tangan</div>
+        </div>
+        <input type="checkbox" id="cek-kamera" checked style="width: 24px; height: 24px; accent-color: #2563eb; cursor: pointer;">
+      </div>
+
+      <button class="btn-mulai" id="btn-mulai">🚀 MULAI BERMAIN</button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       LAYAR AKHIR
+       ===================================================================== -->
+  <div class="layar-modal" id="layar-akhir" style="display: none;">
+    <div class="kartu-modal">
+      <h2 class="judul-utama" id="judul-akhir">HEBAT SEKALI!</h2>
+      <div class="bintang-akhir" id="bintang-akhir">⭐⭐⭐</div>
+      <p class="subjudul" id="pesan-akhir">Kamu berhasil menyelesaikan tantangan IPA!</p>
+
+      <div class="statistik-akhir">
+        <div class="kotak-stat">
+          <span>Skor Akhir</span>
+          <strong id="akhir-skor" style="color:#d97706;">0</strong>
+        </div>
+        <div class="kotak-stat">
+          <span>Jawaban Benar</span>
+          <strong id="akhir-benar" style="color:#16a34a;">0</strong>
+        </div>
+        <div class="kotak-stat">
+          <span>Perlu Dipelajari</span>
+          <strong id="akhir-salah" style="color:#e11d48;">0</strong>
+        </div>
+      </div>
+
+      <div class="daftar-evaluasi" id="wadah-evaluasi">
+        <strong style="color:#92400e; display:block; margin-bottom:6px;">📚 Ringkasan Materi yang Perlu Diulas:</strong>
+        <div id="list-evaluasi"></div>
+      </div>
+
+      <button class="btn-mulai" id="btn-main-lagi">🔄 MAIN LAGI</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   1. KONFIGURASI LAGU LATAR KUSTOM (MUDAH DIEDIT GURU)
+   Isi dengan nama file audio (misal: "lagu_taman.mp3") jika ingin memakai file
+   lagu sendiri secara default, atau biarkan "" untuk musik sintetis bawaan.
+   ============================================================================ */
+let LAGU_LATAR_URL = "";
+
+/* ============================================================================
+   2. BANK SOAL IPA KELAS 8 (50 SOAL - MUDAH DIEDIT GURU)
+   Format tiap soal:
+   - topik: Kategori materi IPA
+   - tanya: Teks pertanyaan
+   - opsi: Array berisi 4 pilihan jawaban [A, B, C, D]
+   - benar: Indeks jawaban yang benar (0 = A, 1 = B, 2 = C, 3 = D)
+   - bahas: Penjelasan singkat edukatif saat siswa menjawab
+   ============================================================================ */
+const BANK_SOAL_IPA = [
+  // --- 35 SOAL DARI LAMPIRAN PDF REVIEW IPA KELAS 8 ---
+  {
+    topik: "Bumi & Tata Surya",
+    tanya: "Fakta astronomi yang mendukung kebenaran teori heliosentris adalah...",
+    opsi: [
+      "Matahari terbit di timur dan terbenam di barat",
+      "Bintang tampak berputar mengelilingi Bumi",
+      "Venus memiliki fase seperti Bulan & 4 satelit mengorbit Jupiter",
+      "Bulan terlihat berubah bentuk setiap malam"
+    ],
+    benar: 2,
+    bahas: "Pengamatan teleskop Galileo membuktikan Venus memiliki fase dan satelit mengorbit Jupiter."
+  },
+  {
+    topik: "Bumi & Tata Surya",
+    tanya: "Planet tetap bergerak pada orbitnya dan tidak terlempar ke angkasa karena...",
+    opsi: [
+      "Gaya gravitasi Matahari dan planet yang diimbangi gerak revolusi",
+      "Gaya tolak-menolak medan magnet antarplanet",
+      "Atmosfer tebal di ruang angkasa menahan planet",
+      "Gaya sentrifugal Matahari mendorong planet"
+    ],
+    benar: 0,
+    bahas: "Keseimbangan gaya gravitasi Matahari dan gerak revolusi menjaga planet tetap di orbitnya."
+  },
+  {
+    topik: "Bumi & Tata Surya",
+    tanya: "Benda langit tersusun dari debu dan es, orbit sangat lonjong, serta berekor menjauhi Matahari adalah...",
+    opsi: ["Asteroid", "Komet", "Meteoroid", "Satelit alami"],
+    benar: 1,
+    bahas: "Komet (bintang berekor) tersusun dari es dan debu dengan ekor yang selalu menjauhi Matahari."
+  },
+  {
+    topik: "Bumi & Tata Surya",
+    tanya: "Kelompok planet inferior yang orbitnya terletak di antara Matahari dan Bumi adalah...",
+    opsi: [
+      "Merkurius dan Venus",
+      "Merkurius dan Mars",
+      "Venus dan Mars",
+      "Mars dan Jupiter"
+    ],
+    benar: 0,
+    bahas: "Planet inferior adalah Merkurius dan Venus karena berada di dalam orbit Bumi."
+  },
+  {
+    topik: "Bumi & Tata Surya",
+    tanya: "Pelaut melihat ujung tiang layar kapal terlebih dahulu sebelum badan kapal. Hal ini membuktikan...",
+    opsi: [
+      "Air laut selalu bergelombang tinggi",
+      "Cahaya mengalami pembiasan di laut",
+      "Bentuk permukaan Bumi melengkung atau bulat",
+      "Jangkauan mata manusia terbatas"
+    ],
+    benar: 2,
+    bahas: "Permukaan Bumi yang melengkung (bulat) membuat bagian atas kapal terlihat lebih dulu."
+  },
+  {
+    topik: "Bumi & Tata Surya",
+    tanya: "Jika rotasi Bumi melambat menjadi 1 bulan per putaran, dampak paling mengancam manusia adalah...",
+    opsi: [
+      "Gravitasi Bumi menghilang total",
+      "Perbedaan suhu ekstrem antara siang sangat panas dan malam membeku",
+      "Seluruh Bumi hujan es sepanjang tahun",
+      "Fase bulan purnama tidak pernah terjadi"
+    ],
+    benar: 1,
+    bahas: "Siang dan malam yang berlangsung berminggu-minggu menyebabkan suhu ekstrem."
+  },
+  {
+    topik: "Bumi & Tata Surya",
+    tanya: "Perubahan posisi semu tahunan Matahari (Juni di utara, Desember di selatan) disebabkan oleh...",
+    opsi: [
+      "Gerak rotasi Bumi dari barat ke timur",
+      "Kemiringan sumbu rotasi Bumi 23,5° saat berevolusi",
+      "Bentuk orbit Bumi berupa lingkaran sempurna",
+      "Perubahan kecepatan revolusi Bulan"
+    ],
+    benar: 1,
+    bahas: "Kemiringan poros Bumi 23,5° saat berevolusi menyebabkan gerak semu tahunan Matahari."
+  },
+  {
+    topik: "Bumi & Tata Surya",
+    tanya: "Peristiwa alam yang merupakan akibat langsung dari gerak revolusi Bumi adalah...",
+    opsi: [
+      "Terjadinya siang dan malam",
+      "Gerak semu harian Matahari",
+      "Perbedaan waktu antarwilayah",
+      "Perubahan lama siang-malam dan pergantian musim"
+    ],
+    benar: 3,
+    bahas: "Revolusi Bumi mengakibatkan pergantian musim dan perbedaan durasi siang serta malam."
+  },
+  {
+    topik: "Bumi & Tata Surya",
+    tanya: "Gerhana bulan sebagian terjadi apabila posisi Bulan berada pada...",
+    opsi: [
+      "Tepat di tengah daerah umbra Bumi",
+      "Sebagian masuk daerah umbra dan sebagian di penumbra Bumi",
+      "Seluruhnya di daerah penumbra Bumi",
+      "Tepat di antara Matahari dan Bumi"
+    ],
+    benar: 1,
+    bahas: "Gerhana bulan sebagian terjadi saat sebagian piringan Bulan masuk ke bayangan inti (umbra)."
+  },
+  {
+    topik: "Bumi & Tata Surya",
+    tanya: "Pada 21 Juni belahan Bumi utara condong ke Matahari. Musim di Jepang dan Australia berturut-turut...",
+    opsi: [
+      "Musim panas dan musim dingin",
+      "Musim dingin dan musim panas",
+      "Musim semi dan musim gugur",
+      "Musim gugur dan musim semi"
+    ],
+    benar: 0,
+    bahas: "Jepang (utara) mengalami musim panas, sedangkan Australia (selatan) mengalami musim dingin."
+  },
+  {
+    topik: "Bumi & Tata Surya",
+    tanya: "Hubungan yang tepat antara kemiringan sumbu Bumi 23,5° dan perubahan musim adalah...",
+    opsi: [
+      "Belahan Bumi yang condong ke Matahari menerima sinar lebih lama sehingga musim panas",
+      "Belahan Bumi yang condong ke Matahari mengalami musim dingin",
+      "Saat titik aphelion seluruh dunia mengalami musim dingin",
+      "Saat titik perihelion seluruh dunia mengalami musim panas"
+    ],
+    benar: 0,
+    bahas: "Penyinaran lebih lama dan tegak lurus memicu musim panas pada belahan yang condong."
+  },
+  {
+    topik: "Bumi & Tata Surya",
+    tanya: "Pada bulan Desember Eropa bersalju sementara Australia panas terik karena...",
+    opsi: [
+      "Jarak Australia ke Matahari jauh lebih dekat",
+      "Sudut datang sinar Matahari di Eropa lebih miring, di Australia lebih tegak lurus",
+      "Lapisan ozon di atas Australia lebih tipis",
+      "Rotasi Bumi di selatan lebih lambat"
+    ],
+    benar: 1,
+    bahas: "Sudut datang sinar Matahari yang tegak lurus memusatkan energi panas di belahan selatan."
+  },
+  {
+    topik: "Bumi & Tata Surya",
+    tanya: "Di London pada bulan Juli siang berlangsung lebih dari 16 jam karena...",
+    opsi: [
+      "Kecepatan rotasi Bumi melambat di bulan Juli",
+      "Belahan Bumi utara condong ke Matahari sehingga wilayah terang lebih luas",
+      "Gravitasi Matahari menarik atmosfer utara",
+      "Jarak Bumi dan Matahari paling dekat"
+    ],
+    benar: 1,
+    bahas: "Kecondongan belahan utara ke Matahari memperpanjang durasi siang hari."
+  },
+  {
+    topik: "Sel & Sistem Organ",
+    tanya: "Pernyataan berikut yang TIDAK sesuai dengan teori sel adalah...",
+    opsi: [
+      "Sel merupakan unit struktural terkecil makhluk hidup",
+      "Semua makhluk hidup tersusun atas sel",
+      "Sel baru dapat terbentuk secara spontan dari benda mati",
+      "Setiap sel berasal dari pembelahan sel sebelumnya"
+    ],
+    benar: 2,
+    bahas: "Teori sel menegaskan bahwa setiap sel berasal dari sel sebelumnya, bukan dari benda mati."
+  },
+  {
+    topik: "Sel & Sistem Organ",
+    tanya: "Bagian sel tumbuhan: pelindung kaku, tempat fotosintesis, penyimpan cadangan air, dan pusat kendali adalah...",
+    opsi: [
+      "Membran sel, mitokondria, lisosom, inti sel",
+      "Dinding sel, kloroplas, vakuola, inti sel",
+      "Dinding sel, ribosom, badan golgi, sitoplasma",
+      "Membran sel, kloroplas, sentrosom, inti sel"
+    ],
+    benar: 1,
+    bahas: "Dinding sel memberi bentuk kaku, kloroplas untuk fotosintesis, vakuola menyimpan air."
+  },
+  {
+    topik: "Sel & Sistem Organ",
+    tanya: "Ciri khas struktur sel yang hanya dimiliki oleh sel hewan adalah...",
+    opsi: [
+      "Memiliki dinding sel selulosa",
+      "Memiliki kloroplas",
+      "Memiliki sentriol dan vakuola kecil",
+      "Memiliki plastida"
+    ],
+    benar: 2,
+    bahas: "Sel hewan memiliki sentriol untuk pembelahan sel dan tidak memiliki dinding sel/kloroplas."
+  },
+  {
+    topik: "Sel & Sistem Organ",
+    tanya: "Urutan tingkat organisasi kehidupan dari unit terkecil hingga sistem organ adalah...",
+    opsi: [
+      "Osteosit (sel) → jaringan tulang → tulang paha (organ) → sistem rangka",
+      "Jaringan tulang → tulang paha → osteosit → sistem rangka",
+      "Tulang paha → osteosit → jaringan tulang → sistem rangka",
+      "Sistem rangka → osteosit → tulang paha → jaringan tulang"
+    ],
+    benar: 0,
+    bahas: "Urutan yang benar: Sel → Jaringan → Organ → Sistem Organ → Organisme."
+  },
+  {
+    topik: "Sel & Sistem Organ",
+    tanya: "Pasangan tingkat organisasi kehidupan dan contohnya yang tepat adalah...",
+    opsi: [
+      "Jaringan: lambung dan usus halus",
+      "Sel: neuron (sel saraf) & Organ: jantung",
+      "Sistem organ: epitel pipih selapis",
+      "Organ: jaringan otot lurik"
+    ],
+    benar: 1,
+    bahas: "Neuron adalah contoh sel saraf, sedangkan jantung adalah contoh organ."
+  },
+  {
+    topik: "Sistem Pencernaan",
+    tanya: "Organ pencernaan yang memiliki dinding berlipat (vili) untuk menyerap sari nutrisi makanan adalah...",
+    opsi: ["Kerongkongan", "Lambung", "Usus halus", "Usus besar"],
+    benar: 2,
+    bahas: "Usus halus memiliki vili (jonjot usus) yang memperluas bidang penyerapan sari makanan."
+  },
+  {
+    topik: "Sistem Pernapasan",
+    tanya: "Gelembung-gelembung kecil berdinding tipis di ujung saluran paru-paru (alveolus) berfungsi untuk...",
+    opsi: [
+      "Menyaring debu dan kotoran udara",
+      "Menyesuaikan suhu udara pernapasan",
+      "Tempat pertukaran gas oksigen dan karbon dioksida secara difusi",
+      "Menghasilkan lendir penangkap bakteri"
+    ],
+    benar: 2,
+    bahas: "Alveolus merupakan tempat pertukaran O2 dan CO2 antara paru-paru dan kapiler darah."
+  },
+  {
+    topik: "Sistem Ekskresi",
+    tanya: "Bagian otak yang mendeteksi dehidrasi dan memerintahkan ginjal menyerap kembali air adalah...",
+    opsi: ["Serebelum", "Hipotalamus", "Lobus oksipitalis", "Medula oblongata"],
+    benar: 1,
+    bahas: "Hipotalamus mengatur keseimbangan cairan tubuh dan memicu sekresi hormon ADH."
+  },
+  {
+    topik: "Sistem Peredaran Darah",
+    tanya: "Pembuluh darah berdinding tebal, elastis, aliran keluar jantung, dan memancar jika terluka adalah...",
+    opsi: ["Vena (pembuluh balik)", "Arteri (pembuluh nadi)", "Kapiler darah", "Venula"],
+    benar: 1,
+    bahas: "Arteri membawa darah bertekanan tinggi keluar dari jantung menuju seluruh tubuh."
+  },
+  {
+    topik: "Sel & Sistem Organ",
+    tanya: "Organ reproduksi perempuan yang menghasilkan sel telur (ovum) dan hormon estrogen adalah...",
+    opsi: ["Ovarium", "Tuba Falopi", "Uterus", "Vagina"],
+    benar: 0,
+    bahas: "Ovarium (indung telur) memproduksi ovum serta hormon estrogen dan progesteron."
+  },
+  {
+    topik: "Sistem Pernapasan",
+    tanya: "Upaya paling tepat untuk mencegah penularan penyakit TBC dan influenza adalah...",
+    opsi: [
+      "Makan tinggi protein tanpa memakai masker",
+      "Menerapkan etika batuk, memakai masker di tempat ramai, dan menjaga ventilasi",
+      "Mengurangi olahraga pagi di luar ruangan",
+      "Minum antibiotik rutin saat sehat"
+    ],
+    benar: 1,
+    bahas: "Masker, etika batuk, dan sirkulasi udara mencegah penularan droplet di udara."
+  },
+  {
+    topik: "Sistem Pencernaan",
+    tanya: "Andi sering telat makan dan suka pedas hingga nyeri ulu hati. Upaya tepat mengatasinya adalah...",
+    opsi: [
+      "Banyak minum minuman bersoda",
+      "Membiasakan pola makan teratur porsi kecil dan kurangi makanan pedas/asam",
+      "Langsung tidur telentang setelah makan besar",
+      "Minum obat pencahar saat perut perih"
+    ],
+    benar: 1,
+    bahas: "Makan teratur dan menghindari iritan lambung mencegah sakit maag (gastritis)."
+  },
+  {
+    topik: "Sistem Ekskresi",
+    tanya: "Kebiasaan sehari-hari yang paling tepat untuk menjaga kesehatan organ ginjal adalah...",
+    opsi: [
+      "Menahan buang air kecil saat sibuk",
+      "Minum air putih cukup setiap hari dan membatasi garam berlebih",
+      "Rutin minum suplemen energi tinggi",
+      "Memperbanyak makanan cepat saji"
+    ],
+    benar: 1,
+    bahas: "Cukup air putih membantu kerja ginjal menyaring limbah darah dan mencegah batu ginjal."
+  },
+  {
+    topik: "Sistem Organ Manusia",
+    tanya: "Pasangan penyakit dan upaya pencegahannya yang tepat adalah...",
+    opsi: [
+      "Konstipasi: kurangi minum air putih",
+      "Anemia: konsumsi zat besi & Hipertensi: kurangi garam",
+      "Batu ginjal: biasakan menahan kencing",
+      "Anemia: kurangi sayuran hijau"
+    ],
+    benar: 1,
+    bahas: "Zat besi membentuk hemoglobin (cegah anemia), dan pembatasan garam menjaga tekanan darah."
+  },
+  {
+    topik: "Zat Aditif & Adiktif",
+    tanya: "Pengaruh utama zat adiktif golongan halusinogen terhadap pancaindra manusia adalah...",
+    opsi: [
+      "Menekan kerja saraf hingga mengantuk",
+      "Memicu saraf pusat bekerja lebih cepat",
+      "Menyebabkan pengguna melihat atau mendengar sesuatu yang tidak nyata",
+      "Menghilangkan rasa nyeri total"
+    ],
+    benar: 2,
+    bahas: "Halusinogen memicu halusinasi atau khayalan palsu pada persepsi pancaindra."
+  },
+  {
+    topik: "Zat Aditif & Adiktif",
+    tanya: "Dampak jangka pendek dan jangka panjang konsumsi pemanis buatan serta pewarna sintetis berlebih adalah...",
+    opsi: [
+      "Jangka pendek gagal ginjal, jangka panjang radang tenggorokan",
+      "Jangka pendek iritasi tenggorokan/mual, jangka panjang risiko kerusakan hati, ginjal, dan kanker",
+      "Jangka pendek diabetes, jangka panjang kantuk",
+      "Tidak menimbulkan efek samping apa pun"
+    ],
+    benar: 1,
+    bahas: "Zat aditif sintetis berlebih membebani kerja hati dan ginjal dalam jangka panjang."
+  },
+  {
+    topik: "Zat Aditif & Adiktif",
+    tanya: "Dampak fisiologis jangka panjang pada organ hati akibat konsumsi alkohol berlebih adalah...",
+    opsi: [
+      "Pembesaran alveolus paru-paru",
+      "Pengerasan dan kerusakan jaringan hati (sirosis hati)",
+      "Penyempitan pembuluh koroner",
+      "Pengapuran tulang rawan sendi"
+    ],
+    benar: 1,
+    bahas: "Alkohol merusak sel-sel hati dan memicu pengerasan jaringan hati (sirosis)."
+  },
+  {
+    topik: "Zat Aditif & Adiktif",
+    tanya: "Dampak sosial yang umum terjadi pada remaja penyalahguna zat adiktif adalah...",
+    opsi: [
+      "Meningkatnya rasa percaya diri di kelas",
+      "Menarik diri dari pergaulan sehat, sering membolos, dan mudah berbohong",
+      "Lebih aktif dalam kegiatan sosial masyarakat",
+      "Manajemen waktu menjadi lebih baik"
+    ],
+    benar: 1,
+    bahas: "Ketergantungan zat adiktif merusak perilaku sosial, kedisiplinan, dan kejujuran."
+  },
+  {
+    topik: "Zat Aditif & Adiktif",
+    tanya: "Dampak lingkungan masyarakat akibat maraknya peredaran narkoba di suatu wilayah adalah...",
+    opsi: [
+      "Meningkatnya angka kriminalitas seperti pencurian",
+      "Menurunnya tingkat pengangguran",
+      "Lingkungan menjadi lebih aman di malam hari",
+      "Meningkatnya solidaritas warga"
+    ],
+    benar: 0,
+    bahas: "Kecanduan mendorong perilaku kriminal demi mendapatkan uang untuk membeli zat adiktif."
+  },
+  {
+    topik: "Zat Aditif & Adiktif",
+    tanya: "Jika label komposisi makanan mengandung tartrazin CI 19140 dan natrium benzoat, tindakan sehat kita...",
+    opsi: [
+      "Membeli banyak karena sumber vitamin",
+      "Membatasi konsumsinya dan memilih camilan tanpa pewarna/pengawet sintetis",
+      "Menjadikannya pengganti makanan pokok",
+      "Memilihnya karena memperkuat imun"
+    ],
+    benar: 1,
+    bahas: "Tartrazin adalah pewarna sintetis dan natrium benzoat adalah pengawet yang perlu dibatasi."
+  },
+  {
+    topik: "Zat Aditif & Adiktif",
+    tanya: "Tindakan asertif paling tepat saat diajak teman mencoba rokok elektrik (vape) adalah...",
+    opsi: [
+      "Ikut mencoba satu kali agar dihargai teman",
+      "Memarahi teman dengan kata-kata kasar",
+      "Menolak dengan tegas namun sopan sambil memberi alasan kesehatan",
+      "Menerima rokok tersebut tanpa menghisapnya"
+    ],
+    benar: 2,
+    bahas: "Sikap asertif berarti menolak tegas dengan sopan tanpa menyinggung namun tetap berprinsip."
+  },
+  {
+    topik: "Zat Aditif & Adiktif",
+    tanya: "Langkah sekolah paling efektif untuk mencegah penyalahgunaan zat adiktif di kalangan pelajar adalah...",
+    opsi: [
+      "Memasang poster hanya di ruang guru",
+      "Seminar interaktif bersama dokter & membentuk kader remaja anti-narkoba",
+      "Memberikan hukuman fisik berat tanpa pendampingan",
+      "Melarang siswa mengikuti kegiatan ekstrakurikuler"
+    ],
+    benar: 1,
+    bahas: "Edukasi interaktif dan pemberdayaan teman sebaya sangat efektif mencegah narkoba."
+  },
+
+  // --- 15 SOAL TAMBAHAN PENDALAMAN MATERI IPA KELAS 8 (TOTAL 50 SOAL) ---
+  {
+    topik: "Perubahan Iklim",
+    tanya: "Gas rumah kaca utama yang dihasilkan dari pembakaran bahan bakar fosil dan memicu pemanasan global adalah...",
+    opsi: ["Oksigen (O2)", "Karbon dioksida (CO2)", "Nitrogen (N2)", "Helium (He)"],
+    benar: 1,
+    bahas: "Karbon dioksida (CO2) memerangkap panas radiasi matahari di atmosfer Bumi."
+  },
+  {
+    topik: "Perubahan Iklim",
+    tanya: "Dampak nyata pemanasan global terhadap wilayah kutub dan pesisir pantai adalah...",
+    opsi: [
+      "Mencairnya es kutub dan naiknya permukaan air laut",
+      "Membekunya seluruh lautan tropis",
+      "Menurunnya suhu rata-rata permukaan Bumi",
+      "Berkurangnya penguapan air laut"
+    ],
+    benar: 0,
+    bahas: "Peningkatan suhu global mencairkan gletser kutub sehingga permukaan air laut naik."
+  },
+  {
+    topik: "Perubahan Iklim",
+    tanya: "Lapisan atmosfer yang melindungi makhluk hidup di Bumi dari radiasi sinar ultraviolet (UV) berlebih adalah...",
+    opsi: ["Lapisan ozon (O3)", "Lapisan termosfer", "Lapisan eksosfer", "Inti luar Bumi"],
+    benar: 0,
+    bahas: "Lapisan ozon di stratosfer menyerap sebagian besar radiasi ultraviolet berbahaya."
+  },
+  {
+    topik: "Perubahan Iklim",
+    tanya: "Tindakan pelajar yang paling efektif membantu mengurangi emisi karbon dan perubahan iklim adalah...",
+    opsi: [
+      "Menyalakan AC dan lampu kamar sepanjang hari",
+      "Berjalan kaki atau bersepeda ke sekolah dan menanam pohon",
+      "Membakar sampah plastik di halaman rumah",
+      "Menggunakan kantong plastik sekali pakai"
+    ],
+    benar: 1,
+    bahas: "Transportasi ramah lingkungan dan penghijauan menyerap CO2 dari atmosfer."
+  },
+  {
+    topik: "Sistem Pencernaan",
+    tanya: "Enzim amilase (ptialin) di dalam mulut berfungsi untuk mengubah zat tepung (amilum) menjadi...",
+    opsi: ["Asam amino", "Gula sederhana (maltosa)", "Asam lemak dan gliserol", "Vitamin dan mineral"],
+    benar: 1,
+    bahas: "Enzim amilase memecah karbohidrat kompleks (amilum) menjadi gula maltosa."
+  },
+  {
+    topik: "Sistem Pencernaan",
+    tanya: "Asam klorida (HCl) yang dihasilkan oleh dinding lambung memiliki fungsi penting untuk...",
+    opsi: [
+      "Membunuh kuman penyakit yang masuk bersama makanan",
+      "Menyerap air dari sisa pencernaan",
+      "Mengubah lemak menjadi gliserol",
+      "Menghasilkan hormon insulin"
+    ],
+    benar: 0,
+    bahas: "Asam lambung (HCl) membunuh bakteri dan mengaktifkan enzim pepsinogen menjadi pepsin."
+  },
+  {
+    topik: "Sistem Pencernaan",
+    tanya: "Organ usus besar dalam sistem pencernaan manusia berperan utama dalam proses...",
+    opsi: [
+      "Penyerapan kembali air dan pembusukan sisa makanan oleh bakteri E. coli",
+      "Pencernaan protein secara mekanik",
+      "Penyerapan glukosa dan asam amino",
+      "Penghasil cairan empedu"
+    ],
+    benar: 0,
+    bahas: "Usus besar mengatur kadar air pada feses dan dibantu bakteri Escherichia coli."
+  },
+  {
+    topik: "Sistem Pernapasan",
+    tanya: "Pada pernapasan perut, saat otot diafragma berkontraksi dan mendatar, peristiwa yang terjadi adalah...",
+    opsi: [
+      "Volume rongga dada membesar dan udara masuk ke paru-paru (inspirasi)",
+      "Volume rongga dada mengecil dan udara keluar",
+      "Tekanan udara di paru-paru meningkat tajam",
+      "Paru-paru mengempis secara tiba-tiba"
+    ],
+    benar: 0,
+    bahas: "Kontraksi diafragma memperbesar rongga dada sehingga tekanan turun dan udara masuk."
+  },
+  {
+    topik: "Sistem Pernapasan",
+    tanya: "Selaput tipis yang membungkus dan melindungi paru-paru dari gesekan saat bernapas disebut...",
+    opsi: ["Pleura", "Perikardium", "Meninges", "Epiglotis"],
+    benar: 0,
+    bahas: "Pleura adalah selaput ganda yang melindungi paru-paru saat mengembang dan mengempis."
+  },
+  {
+    topik: "Sistem Peredaran Darah",
+    tanya: "Komponen darah yang mengandung hemoglobin untuk mengikat dan mengedarkan oksigen adalah...",
+    opsi: [
+      "Eritrosit (sel darah merah)",
+      "Leukosit (sel darah putih)",
+      "Trombosit (keping darah)",
+      "Plasma darah"
+    ],
+    benar: 0,
+    bahas: "Eritrosit kaya akan hemoglobin yang memberi warna merah dan mengikat oksigen."
+  },
+  {
+    topik: "Sistem Peredaran Darah",
+    tanya: "Komponen darah yang berperan membunuh kuman penyakit dan menjaga sistem kekebalan tubuh adalah...",
+    opsi: [
+      "Leukosit (sel darah putih)",
+      "Eritrosit (sel darah merah)",
+      "Trombosit (keping darah)",
+      "Fibrinogen"
+    ],
+    benar: 0,
+    bahas: "Leukosit berfungsi melawan infeksi bakteri, virus, dan benda asing di dalam tubuh."
+  },
+  {
+    topik: "Sistem Peredaran Darah",
+    tanya: "Ruang jantung yang bertugas memompa darah kaya oksigen ke seluruh tubuh adalah...",
+    opsi: [
+      "Bilik kiri (ventrikel sinister)",
+      "Serambi kanan (atrium dexter)",
+      "Bilik kanan (ventrikel dexter)",
+      "Serambi kiri (atrium sinister)"
+    ],
+    benar: 0,
+    bahas: "Bilik kiri memiliki otot paling tebal untuk memompa darah bersih ke seluruh tubuh."
+  },
+  {
+    topik: "Sistem Ekskresi",
+    tanya: "Unit penyaring darah terkecil di dalam ginjal yang berjumlah jutaan disebut...",
+    opsi: ["Nefron", "Alveolus", "Neuron", "Vili"],
+    benar: 0,
+    bahas: "Nefron terdiri atas badan Malpighi dan tubulus untuk menyaring darah membentuk urine."
+  },
+  {
+    topik: "Sistem Ekskresi",
+    tanya: "Urutan tahapan pembentukan urine di dalam ginjal yang benar adalah...",
+    opsi: [
+      "Filtrasi → Reabsorpsi → Augmentasi",
+      "Reabsorpsi → Filtrasi → Augmentasi",
+      "Augmentasi → Filtrasi → Reabsorpsi",
+      "Filtrasi → Augmentasi → Reabsorpsi"
+    ],
+    benar: 0,
+    bahas: "Tahapan urine: Filtrasi (penyaringan), Reabsorpsi (penyerapan kembali), Augmentasi (pengumpulan)."
+  },
+  {
+    topik: "Sistem Ekskresi",
+    tanya: "Selain ginjal, organ ekskresi yang mengeluarkan zat sisa berupa keringat (air dan garam) adalah...",
+    opsi: ["Kulit", "Lambung", "Jantung", "Usus halus"],
+    benar: 0,
+    bahas: "Kelenjar keringat pada kulit mengekskresikan air, garam mineral, dan sedikit urea."
+  }
+];
+
+/* ============================================================================
+   3. MESIN AUDIO WEB AUDIO API (MUSIK TAMAN, DENGUNG LEBAH, SFX & MP3 KUSTOM)
+   ============================================================================ */
+class MesinAudioTaman {
+  constructor() {
+    this.ctx = null;
+    this.masterGain = null;
+    this.musicGain = null;
+    this.sfxGain = null;
+    this.buzzGain = null;
+    this.buzzOsc = null;
+
+    this.musikMuted = false;
+    this.sfxMuted = false;
+    this.volume = 0.6;
+    this.sedangMain = false;
+    this.modeMusik = "awal"; // "awal", "main", "kritis", "menang", "kalah"
+    this.timerMelodi = null;
+    this.langkahNada = 0;
+
+    // Dukungan lagu kustom (MP3/WAV)
+    this.audioKustom = new Audio();
+    this.audioKustom.loop = true;
+    this.pakaiLaguKustom = false;
+
+    if (LAGU_LATAR_URL && LAGU_LATAR_URL.trim() !== "") {
+      this.muatUrlLagu(LAGU_LATAR_URL.trim());
+    }
+  }
+
+  inisialisasi() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioCtx();
+
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = this.volume;
+      this.masterGain.connect(this.ctx.destination);
+
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = this.musikMuted ? 0 : 0.32;
+      this.musicGain.connect(this.masterGain);
+
+      this.sfxGain = this.ctx.createGain();
+      this.sfxGain.gain.value = this.sfxMuted ? 0 : 0.55;
+      this.sfxGain.connect(this.masterGain);
+
+      // Lapisan dengung lebah halus (bzzz)
+      this.mulaiDengungLebah();
+    }
+    if (this.ctx.state === "suspended") {
+      this.ctx.resume();
+    }
+  }
+
+  muatUrlLagu(url) {
+    this.audioKustom.src = url;
+    this.pakaiLaguKustom = true;
+    this.audioKustom.volume = this.musikMuted ? 0 : this.volume * 0.6;
+    if (this.sedangMain && !this.musikMuted) {
+      this.hentikanMelodiSintetis();
+      this.audioKustom.play().catch(() => {});
+    }
+  }
+
+  mulaiDengungLebah() {
+    if (!this.ctx || this.buzzOsc) return;
+    this.buzzOsc = this.ctx.createOscillator();
+    const lfo = this.ctx.createOscillator();
+    const lfoGain = this.ctx.createGain();
+    this.buzzGain = this.ctx.createGain();
+
+    this.buzzOsc.type = "sawtooth";
+    this.buzzOsc.frequency.value = 135; // Frekuensi dengung lebah rendah
+
+    lfo.type = "sine";
+    lfo.frequency.value = 6.5; // Modulasi kepakan sayap
+    lfoGain.gain.value = 12;
+
+    lfo.connect(lfoGain);
+    lfoGain.connect(this.buzzOsc.frequency);
+
+    // Filter lowpass agar dengung lembut dan tidak mengganggu
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 340;
+
+    this.buzzGain.gain.value = 0.035; // Volume dengung sangat halus
+    this.buzzOsc.connect(filter);
+    filter.connect(this.buzzGain);
+    this.buzzGain.connect(this.musicGain);
+
+    this.buzzOsc.start();
+    lfo.start();
+  }
+
+  aturModeMusik(mode) {
+    this.modeMusik = mode;
+    this.sedangMain = true;
+    this.inisialisasi();
+
+    if (this.pakaiLaguKustom) {
+      this.hentikanMelodiSintetis();
+      if (!this.musikMuted) {
+        this.audioKustom.playbackRate = mode === "kritis" ? 1.18 : 1.0;
+        this.audioKustom.play().catch(() => {});
+      }
+      return;
+    }
+
+    this.hentikanMelodiSintetis();
+    this.langkahNada = 0;
+
+    // Tangga nada mayor pentatonik C (C5, D5, E5, G5, A5, C6) ceria untuk anak-anak
+    const polaCeria = [523.25, 659.25, 783.99, 880.00, 783.99, 659.25, 587.33, 659.25];
+    const polaKritis = [587.33, 698.46, 880.00, 987.77, 880.00, 698.46, 659.25, 783.99];
+    const polaMenang = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
+    const polaKalah  = [659.25, 587.33, 523.25, 440.00, 523.25];
+
+    let tempoMs = 340;
+    let pola = polaCeria;
+    let loop = true;
+
+    if (mode === "awal") {
+      tempoMs = 420;
+    } else if (mode === "main") {
+      tempoMs = 300;
+    } else if (mode === "kritis") {
+      tempoMs = 195;
+      pola = polaKritis;
+    } else if (mode === "menang") {
+      tempoMs = 180;
+      pola = polaMenang;
+      loop = false;
+    } else if (mode === "kalah") {
+      tempoMs = 320;
+      pola = polaKalah;
+      loop = false;
+    }
+
+    const mainkanLangkah = () => {
+      if (this.musikMuted || !this.ctx || document.hidden) return;
+      if (!loop && this.langkahNada >= pola.length) {
+        this.hentikanMelodiSintetis();
+        return;
+      }
+      const freq = pola[this.langkahNada % pola.length];
+      this.bunyiNada(freq, tempoMs / 1000 * 0.75, "triangle", 0.25, this.musicGain);
+      this.langkahNada++;
+    };
+
+    mainkanLangkah();
+    this.timerMelodi = setInterval(mainkanLangkah, tempoMs);
+  }
+
+  hentikanMelodiSintetis() {
+    if (this.timerMelodi) {
+      clearInterval(this.timerMelodi);
+      this.timerMelodi = null;
+    }
+  }
+
+  bunyiNada(freq, durasi, tipe = "sine", vol = 0.4, tujuan = null) {
+    if (!this.ctx) return;
+    const target = tujuan || this.sfxGain;
+    const sekarang = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = tipe;
+    osc.frequency.setValueAtTime(freq, sekarang);
+
+    gain.gain.setValueAtTime(0.001, sekarang);
+    gain.gain.exponentialRampToValueAtTime(vol, sekarang + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, sekarang + durasi);
+
+    osc.connect(gain);
+    gain.connect(target);
+
+    osc.start(sekarang);
+    osc.stop(sekarang + durasi + 0.02);
+  }
+
+  sfxBenar() {
+    if (this.sfxMuted) return;
+    this.inisialisasi();
+    // Nada naik ceria (Ding!)
+    this.bunyiNada(587.33, 0.14, "sine", 0.5);
+    setTimeout(() => this.bunyiNada(880.00, 0.28, "sine", 0.55), 90);
+  }
+
+  sfxSalah() {
+    if (this.sfxMuted) return;
+    this.inisialisasi();
+    // Nada turun lembut (tidak menakutkan)
+    this.bunyiNada(349.23, 0.18, "triangle", 0.4);
+    setTimeout(() => this.bunyiNada(293.66, 0.25, "triangle", 0.35), 130);
+  }
+
+  sfxBintang() {
+    if (this.sfxMuted) return;
+    this.inisialisasi();
+    const nada = [523.25, 659.25, 783.99, 1046.50];
+    nada.forEach((f, idx) => {
+      setTimeout(() => this.bunyiNada(f, 0.2, "triangle", 0.45), idx * 80);
+    });
+  }
+
+  toggleMuteMusik() {
+    this.musikMuted = !this.musikMuted;
+    if (this.musicGain) {
+      this.musicGain.gain.value = this.musikMuted ? 0 : 0.32;
+    }
+    if (this.pakaiLaguKustom) {
+      if (this.musikMuted) this.audioKustom.pause();
+      else if (this.sedangMain) this.audioKustom.play().catch(() => {});
+    }
+    return this.musikMuted;
+  }
+
+  toggleMuteSfx() {
+    this.sfxMuted = !this.sfxMuted;
+    if (this.sfxGain) {
+      this.sfxGain.gain.value = this.sfxMuted ? 0 : 0.55;
+    }
+    return this.sfxMuted;
+  }
+
+  aturVolume(nilai) {
+    this.volume = parseFloat(nilai);
+    if (this.masterGain) {
+      this.masterGain.gain.value = this.volume;
+    }
+    if (this.pakaiLaguKustom) {
+      this.audioKustom.volume = this.musikMuted ? 0 : this.volume * 0.6;
+    }
+  }
+
+  jedaOtomatis(jeda) {
+    if (jeda) {
+      if (this.ctx && this.ctx.state === "running") this.ctx.suspend();
+      if (this.pakaiLaguKustom) this.audioKustom.pause();
+    } else if (this.sedangMain) {
+      if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
+      if (this.pakaiLaguKustom && !this.musikMuted) this.audioKustom.play().catch(() => {});
+    }
+  }
+}
+
+const audio = new MesinAudioTaman();
+
+/* ============================================================================
+   4. DETEKSI GERAKAN KAMERA (BATTLE GESTURE OPTICAL MOTION CAPTURE)
+   ============================================================================ */
+class DetektorGestureKamera {
+  constructor(videoEl, kanvasEl, onGestureHit) {
+    this.video = videoEl;
+    this.kanvas = kanvasEl;
+    this.ctx = kanvasEl.getContext("2d");
+    this.onGestureHit = onGestureHit;
+
+    // Kanvas kecil tersembunyi untuk pemrosesan piksel cepat (ringan di HP/Laptop)
+    this.kanvasProses = document.createElement("canvas");
+    this.kanvasProses.width = 96;
+    this.kanvasProses.height = 72;
+    this.ctxProses = this.kanvasProses.getContext("2d", { willReadFrequently: true });
+
+    this.frameSebelumnya = null;
+    this.aktif = false;
+    this.partikelGesture = [];
+    this.cooldownDeteksi = 0;
+  }
+
+  async mulai() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false
+      });
+      this.video.srcObject = stream;
+      await this.video.play();
+      this.video.style.display = "block";
+      this.aktif = true;
+      this.perbaruiUkuranKanvas();
+      return true;
+    } catch (err) {
+      this.aktif = false;
+      this.video.style.display = "none";
+      return false;
+    }
+  }
+
+  hentikan() {
+    this.aktif = false;
+    if (this.video.srcObject) {
+      this.video.srcObject.getTracks().forEach(t => t.stop());
+      this.video.srcObject = null;
+    }
+    this.video.style.display = "none";
+  }
+
+  perbaruiUkuranKanvas() {
+    this.kanvas.width = window.innerWidth;
+    this.kanvas.height = window.innerHeight;
+  }
+
+  prosesFrame(daftarLebah) {
+    this.ctx.clearRect(0, 0, this.kanvas.width, this.kanvas.height);
+
+    // Gambar jejak kilau gerakan tangan
+    for (let i = this.partikelGesture.length - 1; i >= 0; i--) {
+      const p = this.partikelGesture[i];
+      p.alpha -= 0.06;
+      p.radius *= 0.94;
+      if (p.alpha <= 0) {
+        this.partikelGesture.splice(i, 1);
+      } else {
+        this.ctx.beginPath();
+        this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        this.ctx.fillStyle = `rgba(255, 215, 0, ${p.alpha})`;
+        this.ctx.fill();
+      }
+    }
+
+    if (!this.aktif || this.video.readyState < 2) return;
+
+    const w = this.kanvasProses.width;
+    const h = this.kanvasProses.height;
+
+    // Gambar frame cermin ke kanvas pemrosesan
+    this.ctxProses.save();
+    this.ctxProses.scale(-1, 1);
+    this.ctxProses.drawImage(this.video, -w, 0, w, h);
+    this.ctxProses.restore();
+
+    const frameSekarang = this.ctxProses.getImageData(0, 0, w, h).data;
+
+    if (this.frameSebelumnya) {
+      const skalaX = this.kanvas.width / w;
+      const skalaY = this.kanvas.height / h;
+      const titikGerak = [];
+
+      // Sampling tiap 2 piksel agar tetap 60 FPS di semua perangkat
+      for (let y = 0; y < h; y += 2) {
+        for (let x = 0; x < w; x += 2) {
+          const idx = (y * w + x) * 4;
+          const bedaR = Math.abs(frameSekarang[idx] - this.frameSebelumnya[idx]);
+          const bedaG = Math.abs(frameSekarang[idx + 1] - this.frameSebelumnya[idx + 1]);
+          const bedaB = Math.abs(frameSekarang[idx + 2] - this.frameSebelumnya[idx + 2]);
+
+          // Ambang batas gerakan tangan yang cukup kuat
+          if (bedaR + bedaG + bedaB > 115) {
+            const layarX = x * skalaX;
+            const layarY = y * skalaY;
+            titikGerak.push({ x: layarX, y: layarY });
+
+            if (Math.random() < 0.12 && this.partikelGesture.length < 45) {
+              this.partikelGesture.push({
+                x: layarX,
+                y: layarY,
+                radius: 14,
+                alpha: 0.75
+              });
+            }
+          }
+        }
+      }
+
+      if (this.cooldownDeteksi > 0) {
+        this.cooldownDeteksi--;
+      } else if (titikGerak.length >= 6) {
+        // Cek apakah gerakan tangan menyentuh salah satu lebah di layar
+        for (const lebah of daftarLebah) {
+          if (lebah.terkunci) continue;
+          const rect = lebah.el.getBoundingClientRect();
+          let hitCount = 0;
+
+          for (let i = 0; i < titikGerak.length; i++) {
+            const pt = titikGerak[i];
+            if (pt.x >= rect.left && pt.x <= rect.right && pt.y >= rect.top && pt.y <= rect.bottom) {
+              hitCount++;
+            }
+          }
+
+          // Jika minimal 5 titik gerakan mengenai lebah, anggap tertangkap!
+          if (hitCount >= 5) {
+            this.cooldownDeteksi = 28; // Mencegah pemicu ganda dalam 0.5 detik
+            this.onGestureHit(lebah);
+            break;
+          }
+        }
+      }
+    }
+
+    this.frameSebelumnya = new Uint8ClampedArray(frameSekarang);
+  }
+}
+
+/* ============================================================================
+   5. LOGIKA UTAMA PERMAINAN "TANGKAP LEBAH"
+   ============================================================================ */
+const JUMLAH_SOAL_SESI = 10;
+const WAKTU_PER_SOAL = 15; // 15 detik per soal
+
+const KONFIG_KESULITAN = {
+  mudah:  { jumlahLebah: 3, kecepatan: 1.35 },
+  sedang: { jumlahLebah: 4, kecepatan: 2.15 },
+  sulit:  { jumlahLebah: 4, kecepatan: 3.10 }
+};
+
+const stateGame = {
+  level: "mudah",
+  soalSesi: [],
+  indeksSoal: 0,
+  skor: 0,
+  nyawa: 3,
+  sisaWaktu: WAKTU_PER_SOAL,
+  timerInterval: null,
+  lebahAktif: [],
+  sedangTransisi: false,
+  jumlahBenar: 0,
+  daftarSalah: [],
+  animasiId: null
+};
+
+// Referensi Elemen DOM
+const elSkor = document.getElementById("teks-skor");
+const elNyawa = document.getElementById("teks-nyawa");
+const elProgres = document.getElementById("teks-progres");
+const elTimer = document.getElementById("teks-timer");
+const elWadahTimer = document.getElementById("wadah-timer");
+const elKotakTanyaWrap = document.getElementById("kotak-pertanyaan-wrap");
+const elLabelTopik = document.getElementById("label-topik");
+const elTeksPertanyaan = document.getElementById("teks-pertanyaan");
+const elArenaLebah = document.getElementById("arena-lebah");
+const elBanner = document.getElementById("banner-umpan-balik");
+const elJudulBanner = document.getElementById("judul-umpan-balik");
+const elIsiBanner = document.getElementById("isi-umpan-balik");
+
+const detektorKamera = new DetektorGestureKamera(
+  document.getElementById("video-kamera"),
+  document.getElementById("kanvas-gesture"),
+  (lebah) => tangkapLebah(lebah)
+);
+
+// Fungsi mengacak array (Fisher-Yates Shuffle)
+function acakArray(arr) {
+  const salinan = [...arr];
+  for (let i = salinan.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [salinan[i], salinan[j]] = [salinan[j], salinan[i]];
+  }
+  return salinan;
+}
+
+// Membuat SVG Lebah Ceria dengan Sayap Bergerak
+function buatSvgLebah(warnaAksen = "#f59e0b") {
+  return `
+    <svg viewBox="0 0 100 75" width="100%" height="100%">
+      <!-- Sayap Kiri & Kanan -->
+      <ellipse class="sayap-kiri" cx="36" cy="22" rx="16" ry="11" fill="rgba(255,255,255,0.88)" stroke="#94a3b8" stroke-width="2"/>
+      <ellipse class="sayap-kanan" cx="64" cy="22" rx="16" ry="11" fill="rgba(255,255,255,0.88)" stroke="#94a3b8" stroke-width="2"/>
+      <!-- Antena -->
+      <path d="M43 22 Q36 8 30 10" fill="none" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M57 22 Q64 8 70 10" fill="none" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="30" cy="10" r="3" fill="${warnaAksen}"/>
+      <circle cx="70" cy="10" r="3" fill="${warnaAksen}"/>
+      <!-- Badan Lebah -->
+      <ellipse cx="50" cy="44" rx="28" ry="20" fill="#facc15" stroke="#1e293b" stroke-width="3"/>
+      <!-- Garis Hitam Lebah -->
+      <path d="M36 26 Q33 44 36 62" fill="none" stroke="#1e293b" stroke-width="5"/>
+      <path d="M50 24 Q47 44 50 64" fill="none" stroke="#1e293b" stroke-width="5"/>
+      <path d="M64 26 Q61 44 64 62" fill="none" stroke="#1e293b" stroke-width="5"/>
+      <!-- Wajah Lucu -->
+      <circle cx="29" cy="40" r="3.2" fill="#1e293b"/>
+      <circle cx="28" cy="39" r="1" fill="#fff"/>
+      <path d="M25 48 Q30 53 35 48" fill="none" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round"/>
+      <!-- Sengat Kecil -->
+      <polygon points="78,44 86,41 86,47" fill="#1e293b"/>
+    </svg>
+  `;
+}
+
+// Efek Ledakan Bintang saat Benar
+function buatLedakanBintang(x, y) {
+  const simbol = ["⭐", "✨", "🌟", "💫"];
+  for (let i = 0; i < 12; i++) {
+    const el = document.createElement("div");
+    el.className = "bintang-partikel";
+    el.textContent = simbol[i % simbol.length];
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    const sudut = (Math.PI * 2 * i) / 12;
+    const jarak = 60 + Math.random() * 80;
+    el.style.setProperty("--dx", `${Math.cos(sudut) * jarak}px`);
+    el.style.setProperty("--dy", `${Math.sin(sudut) * jarak}px`);
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 900);
+  }
+}
+
+function tampilkanUmpanBalik(benar, judul, pesan) {
+  elBanner.className = `tampil ${benar ? "benar" : "salah"}`;
+  elJudulBanner.textContent = judul;
+  elJudulBanner.style.color = benar ? "#16a34a" : "#d97706";
+  elIsiBanner.textContent = pesan;
+}
+
+function sembunyikanUmpanBalik() {
+  elBanner.className = "";
+}
+
+function perbaruiHUD() {
+  elSkor.textContent = stateGame.skor;
+  elNyawa.textContent = "❤️".repeat(Math.max(0, stateGame.nyawa)) || "0";
+  elProgres.textContent = `${Math.min(stateGame.indeksSoal + 1, JUMLAH_SOAL_SESI)}/${JUMLAH_SOAL_SESI}`;
+  elTimer.textContent = stateGame.sisaWaktu;
+
+  if (stateGame.sisaWaktu <= 5) {
+    elWadahTimer.classList.add("kritis");
+  } else {
+    elWadahTimer.classList.remove("kritis");
+  }
+}
+
+// Memulai Sesi Permainan Baru
+async function mulaiPermainan() {
+  document.getElementById("layar-awal").style.display = "none";
+  document.getElementById("layar-akhir").style.display = "none";
+  elKotakTanyaWrap.style.display = "block";
+
+  // Inisialisasi audio setelah interaksi klik user
+  audio.inisialisasi();
+  audio.aturModeMusik("main");
+
+  // Aktifkan kamera jika dicentang
+  const inginKamera = document.getElementById("cek-kamera").checked;
+  const titikCam = document.getElementById("titik-kamera");
+  const teksCam = document.getElementById("teks-status-kamera");
+
+  if (inginKamera) {
+    teksCam.textContent = "Menghubungkan kamera gesture...";
+    const sukses = await detektorKamera.mulai();
+    if (sukses) {
+      titikCam.style.background = "#22c55e";
+      teksCam.textContent = "Kamera Gesture Aktif! Lambaikan tangan ke lebah";
+    } else {
+      titikCam.style.background = "#f59e0b";
+      teksCam.textContent = "Kamera tidak tersedia • Gunakan Sentuh / Klik";
+    }
+  } else {
+    detektorKamera.hentikan();
+    titikCam.style.background = "#38bdf8";
+    teksCam.textContent = "Mode Sentuh / Klik Aktif";
+  }
+
+  // Siapkan 10 soal acak dari bank soal 50 soal
+  stateGame.soalSesi = acakArray(BANK_SOAL_IPA).slice(0, JUMLAH_SOAL_SESI);
+  stateGame.indeksSoal = 0;
+  stateGame.skor = 0;
+  stateGame.nyawa = 3;
+  stateGame.jumlahBenar = 0;
+  stateGame.daftarSalah = [];
+  stateGame.sedangTransisi = false;
+
+  perbaruiHUD();
+  muatSoalSekarang();
+
+  if (stateGame.animasiId) cancelAnimationFrame(stateGame.animasiId);
+  loopAnimasi();
+}
+
+// Memuat Pertanyaan dan Memunculkan Lebah-lebah Jawaban
+function muatSoalSekarang() {
+  clearInterval(stateGame.timerInterval);
+  sembunyikanUmpanBalik();
+  elArenaLebah.innerHTML = "";
+  stateGame.lebahAktif = [];
+  stateGame.sedangTransisi = false;
+
+  if (stateGame.indeksSoal >= JUMLAH_SOAL_SESI || stateGame.nyawa <= 0) {
+    akhiriPermainan();
+    return;
+  }
+
+  const soal = stateGame.soalSesi[stateGame.indeksSoal];
+  stateGame.sisaWaktu = WAKTU_PER_SOAL;
+  perbaruiHUD();
+
+  elLabelTopik.textContent = `${soal.topik} • Soal ${stateGame.indeksSoal + 1} dari ${JUMLAH_SOAL_SESI}`;
+  elTeksPertanyaan.textContent = soal.tanya;
+
+  // Tentukan jumlah lebah sesuai tingkat kesulitan (3 atau 4 lebah)
+  const konfig = KONFIG_KESULITAN[stateGame.level];
+  let pilihanTampil = soal.opsi.map((teks, idx) => ({
+    teks,
+    isBenar: idx === soal.benar
+  }));
+
+  if (konfig.jumlahLebah < 4) {
+    const jawabanBenar = pilihanTampil.find(p => p.isBenar);
+    const jawabanSalah = acakArray(pilihanTampil.filter(p => !p.isBenar)).slice(0, konfig.jumlahLebah - 1);
+    pilihanTampil = acakArray([jawabanBenar, ...jawabanSalah]);
+  } else {
+    pilihanTampil = acakArray(pilihanTampil);
+  }
+
+  const hurufOpsi = ["A", "B", "C", "D"];
+  const lebarLayar = window.innerWidth;
+  const tinggiLayar = window.innerHeight;
+  const batasAtas = 185;
+  const batasBawah = tinggiLayar - 145;
+
+  pilihanTampil.forEach((item, index) => {
+    const el = document.createElement("div");
+    el.className = "lebah-item";
+    el.innerHTML = `
+      <div class="lebah-svg-wrap">${buatSvgLebah()}</div>
+      <div class="papan-jawaban">
+        <span class="badge-opsi">${hurufOpsi[index]}</span>
+        <span>${item.teks}</span>
+      </div>
+    `;
+
+    // Sebar posisi awal lebah agar tidak bertumpuk
+    const kolom = index % 2;
+    const baris = Math.floor(index / 2);
+    const xAwal = kolom === 0
+      ? 30 + Math.random() * (lebarLayar * 0.35)
+      : lebarLayar * 0.5 + Math.random() * (lebarLayar * 0.3);
+    const yAwal = batasAtas + baris * ((batasBawah - batasAtas) / 2) + Math.random() * 40;
+
+    const sudutGerak = Math.random() * Math.PI * 2;
+    const dataLebah = {
+      el,
+      isBenar: item.isBenar,
+      teks: item.teks,
+      x: Math.max(10, Math.min(lebarLayar - 250, xAwal)),
+      y: Math.max(batasAtas, Math.min(batasBawah, yAwal)),
+      vx: Math.cos(sudutGerak) * konfig.kecepatan,
+      vy: Math.sin(sudutGerak) * konfig.kecepatan * 0.75,
+      faseAyun: Math.random() * Math.PI * 2,
+      terkunci: false
+    };
+
+    // Event klik mouse / sentuhan layar langsung
+    const tanganiPilih = (e) => {
+      e.preventDefault();
+      tangkapLebah(dataLebah);
+    };
+    el.addEventListener("pointerdown", tanganiPilih);
+
+    elArenaLebah.appendChild(el);
+    stateGame.lebahAktif.push(dataLebah);
+  });
+
+  // Jalankan Timer 15 Detik per Soal
+  stateGame.timerInterval = setInterval(() => {
+    if (stateGame.sedangTransisi) return;
+    stateGame.sisaWaktu--;
+    perbaruiHUD();
+
+    if (stateGame.sisaWaktu <= 0) {
+      clearInterval(stateGame.timerInterval);
+      tanganiWaktuHabis();
+    }
+  }, 1000);
+}
+
+// Menangani saat pemain menangkap lebah (lewat gesture kamera maupun sentuhan)
+function tangkapLebah(lebah) {
+  if (stateGame.sedangTransisi || lebah.terkunci) return;
+
+  const soal = stateGame.soalSesi[stateGame.indeksSoal];
+
+  if (lebah.isBenar) {
+    // JAWABAN BENAR
+    stateGame.sedangTransisi = true;
+    clearInterval(stateGame.timerInterval);
+    audio.sfxBenar();
+
+    const bonusWaktu = stateGame.sisaWaktu * 5;
+    stateGame.skor += 100 + bonusWaktu;
+    stateGame.jumlahBenar++;
+    perbaruiHUD();
+
+    const rect = lebah.el.getBoundingClientRect();
+    buatLedakanBintang(rect.left + rect.width / 2, rect.top + rect.height / 2);
+
+    tampilkanUmpanBalik(
+      true,
+      `🌟 TEPAT SEKALI! (+${100 + bonusWaktu} Poin)`,
+      soal.bahas
+    );
+
+    setTimeout(() => {
+      stateGame.indeksSoal++;
+      muatSoalSekarang();
+    }, 1850);
+  } else {
+    // JAWABAN SALAH (Sesuai aturan: nyawa tidak berkurang, lebah bergetar & umpan balik mendidik)
+    lebah.terkunci = true;
+    audio.sfxSalah();
+    lebah.el.classList.add("lebah-getar");
+
+    // Catat materi yang masih keliru untuk evaluasi akhir
+    if (!stateGame.daftarSalah.some(s => s.tanya === soal.tanya)) {
+      stateGame.daftarSalah.push({
+        topik: soal.topik,
+        tanya: soal.tanya,
+        jawabanBenar: soal.opsi[soal.benar],
+        bahas: soal.bahas
+      });
+    }
+
+    tampilkanUmpanBalik(
+      false,
+      "🐝 Ups, Coba Tangkap Lebah Lainnya!",
+      `Jawaban "${lebah.teks}" belum tepat. Ayo cari jawaban yang lebih sesuai!`
+    );
+
+    setTimeout(() => {
+      lebah.el.classList.remove("lebah-getar");
+      lebah.terkunci = false;
+      if (!stateGame.sedangTransisi) sembunyikanUmpanBalik();
+    }, 1400);
+  }
+}
+
+function tanganiWaktuHabis() {
+  stateGame.sedangTransisi = true;
+  stateGame.nyawa--;
+  audio.sfxSalah();
+  perbaruiHUD();
+
+  if (stateGame.nyawa === 1) {
+    audio.aturModeMusik("kritis");
+  }
+
+  const soal = stateGame.soalSesi[stateGame.indeksSoal];
+  if (!stateGame.daftarSalah.some(s => s.tanya === soal.tanya)) {
+    stateGame.daftarSalah.push({
+      topik: soal.topik,
+      tanya: soal.tanya,
+      jawabanBenar: soal.opsi[soal.benar],
+      bahas: soal.bahas
+    });
+  }
+
+  tampilkanUmpanBalik(
+    false,
+    "⏰ Waktu Soal Habis!",
+    `Jawaban yang benar adalah: ${soal.opsi[soal.benar]}`
+  );
+
+  setTimeout(() => {
+    stateGame.indeksSoal++;
+    muatSoalSekarang();
+  }, 2000);
+}
+
+// Loop Animasi Utama 60 FPS (requestAnimationFrame)
+function loopAnimasi() {
+  const lebarLayar = window.innerWidth;
+  const tinggiLayar = window.innerHeight;
+  const batasAtas = 175;
+  const batasBawah = tinggiLayar - 135;
+
+  stateGame.lebahAktif.forEach((lebah) => {
+    const lebarEl = lebah.el.offsetWidth || 220;
+    lebah.x += lebah.vx;
+    lebah.y += lebah.vy;
+    lebah.faseAyun += 0.06;
+
+    // Pantulan lembut di tepi layar
+    if (lebah.x <= 8) {
+      lebah.x = 8;
+      lebah.vx = Math.abs(lebah.vx);
+    } else if (lebah.x + lebarEl >= lebarLayar - 8) {
+      lebah.x = lebarLayar - lebarEl - 8;
+      lebah.vx = -Math.abs(lebah.vx);
+    }
+
+    if (lebah.y <= batasAtas) {
+      lebah.y = batasAtas;
+      lebah.vy = Math.abs(lebah.vy);
+    } else if (lebah.y >= batasBawah) {
+      lebah.y = batasBawah;
+      lebah.vy = -Math.abs(lebah.vy);
+    }
+
+    // Efek melayang naik-turun alami seperti lebah terbang
+    const ayunY = Math.sin(lebah.faseAyun) * 8;
+    lebah.el.style.transform = `translate3d(${lebah.x}px, ${lebah.y + ayunY}px, 0)`;
+  });
+
+  // Proses deteksi gerakan kamera pada setiap frame
+  detektorKamera.prosesFrame(stateGame.lebahAktif);
+
+  stateGame.animasiId = requestAnimationFrame(loopAnimasi);
+}
+
+// Layar Akhir & Evaluasi Belajar
+function akhiriPermainan() {
+  clearInterval(stateGame.timerInterval);
+  cancelAnimationFrame(stateGame.animasiId);
+  elArenaLebah.innerHTML = "";
+  elKotakTanyaWrap.style.display = "none";
+  sembunyikanUmpanBalik();
+
+  const menang = stateGame.nyawa > 0 && stateGame.jumlahBenar >= 5;
+  audio.aturModeMusik(menang ? "menang" : "kalah");
+  if (menang) audio.sfxBintang();
+
+  let bintang = "⭐";
+  if (stateGame.jumlahBenar >= 8 && stateGame.nyawa > 0) bintang = "⭐⭐⭐";
+  else if (stateGame.jumlahBenar >= 5) bintang = "⭐⭐";
+
+  document.getElementById("judul-akhir").textContent = menang ? "🎉 LUAR BIASA!" : "💪 TETAP SEMANGAT!";
+  document.getElementById("bintang-akhir").textContent = bintang;
+  document.getElementById("pesan-akhir").textContent = menang
+    ? "Kamu jagoan IPA Kelas 8! Terus pertahankan prestasimu."
+    : "Belajar sains adalah petualangan. Yuk pelajari ringkasan di bawah dan coba lagi!";
+
+  document.getElementById("akhir-skor").textContent = stateGame.skor;
+  document.getElementById("akhir-benar").textContent = `${stateGame.jumlahBenar}/${JUMLAH_SOAL_SESI}`;
+  document.getElementById("akhir-salah").textContent = stateGame.daftarSalah.length;
+
+  const listEval = document.getElementById("list-evaluasi");
+  if (stateGame.daftarSalah.length === 0) {
+    listEval.innerHTML = `<div style="color:#16a34a; font-weight:700;">✨ Sempurna! Semua materi dijawab dengan tepat tanpa kekeliruan.</div>`;
+  } else {
+    listEval.innerHTML = stateGame.daftarSalah.map((item, idx) => `
+      <div class="item-evaluasi">
+        <strong>${idx + 1}. [${item.topik}]</strong> ${item.tanya}<br>
+        <span style="color:#15803d; font-weight:700;">✔ Jawaban Tepat: ${item.jawabanBenar}</span><br>
+        <em style="color:#475569;">💡 ${item.bahas}</em>
+      </div>
+    `).join("");
+  }
+
+  document.getElementById("layar-akhir").style.display = "flex";
+}
+
+/* ============================================================================
+   6. EVENT LISTENER ANTARMUKA & KONTROL AUDIO
+   ============================================================================ */
+document.querySelectorAll(".btn-level").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".btn-level").forEach(b => b.classList.remove("aktif"));
+    btn.classList.add("aktif");
+    stateGame.level = btn.dataset.level;
+  });
+});
+
+document.getElementById("btn-mulai").addEventListener("click", mulaiPermainan);
+document.getElementById("btn-main-lagi").addEventListener("click", mulaiPermainan);
+
+// Kontrol Mute Musik & SFX
+const btnMuteMusik = document.getElementById("btn-mute-musik");
+btnMuteMusik.addEventListener("click", () => {
+  const muted = audio.toggleMuteMusik();
+  btnMuteMusik.textContent = muted ? "🔇" : "🎵";
+  btnMuteMusik.classList.toggle("nonaktif", muted);
+});
+
+const btnMuteSfx = document.getElementById("btn-mute-sfx");
+btnMuteSfx.addEventListener("click", () => {
+  const muted = audio.toggleMuteSfx();
+  btnMuteSfx.textContent = muted ? "🔕" : "🔊";
+  btnMuteSfx.classList.toggle("nonaktif", muted);
+});
+
+document.getElementById("slider-volume").addEventListener("input", (e) => {
+  audio.aturVolume(e.target.value);
+});
+
+// Fitur Pilih Lagu Sendiri dari Perangkat Guru
+const inputFileLagu = document.getElementById("input-file-lagu");
+document.getElementById("btn-pilih-lagu").addEventListener("click", () => {
+  inputFileLagu.click();
+});
+inputFileLagu.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const urlObjek = URL.createObjectURL(file);
+    audio.muatUrlLagu(urlObjek);
+    document.getElementById("btn-pilih-lagu").textContent = `🎶 ${file.name.slice(0, 14)}...`;
+  }
+});
+
+// Otomatis jeda musik saat tab browser tidak aktif
+document.addEventListener("visibilitychange", () => {
+  audio.jedaOtomatis(document.hidden);
+});
+
+window.addEventListener("resize", () => {
+  detektorKamera.perbaruiUkuranKanvas();
+});
+</script>
+</body>
+</html>
